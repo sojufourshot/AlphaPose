@@ -16,6 +16,34 @@ def CCW(a, b):
     return x1*y2-x2*y1
 
 
+def get_CCW_value(vectors):
+    # adjacent vector
+    connections = [[0, 1], [0, 2], [0, 7], [0, 10], [1, 7], [1, 10], [2, 7], [
+        2, 10], [7, 10], [1, 3], [3, 4], [2, 5], [5, 6], [7, 8], [8, 9], [10, 11], [11, 12]]
+    value = []
+    for p1, p2 in connections:
+        value.append(CCW(vectors[p1], vectors[p2]))
+    return value
+
+
+def cosine_similarity(a, b):
+    """Get cosine similarity
+
+    Args:
+        a (Point): vector1
+        b (Point): vector2
+
+    Returns:
+        value: cosine value between two vectors
+    """
+    x1, y1 = a
+    x2, y2 = b
+    dot_product = x1*x2+y1*y2
+    na = (x1**2+y1**2)**0.5
+    nb = (x2**2+y2**2)**0.5
+    return dot_product / (na*nb)
+
+
 def normalization(joints, bbox):
     """Normalize joints
 
@@ -31,12 +59,13 @@ def normalization(joints, bbox):
     for x, y in joints:
         x -= left
         y -= bottom
-        new_joints.append(x/width, y/height)
+        new_joints.append([x/width, y/height])
     return new_joints
 
 
 def get_feature(img):
     """Run AI model
+       get keypoints, boundingbox
 
     Args:
         img (string): image path
@@ -55,19 +84,82 @@ def get_feature(img):
         keypoint = item["keypoints"]
         bbox = item["bbox"]  # [left, bottom, width, height]
         proposal_score = item["proposal_score"]
-        keypoints.append(keypoint.tolist())
+        keypoint = keypoint.tolist()
+
+        # 가슴 좌표 구하기 (양 어깨의 중심)
+        x1, y1 = keypoint[5]  # left shoulder
+        x2, y2 = keypoint[6]  # right shoulder
+        keypoint.append([(x1+x2)/2, (y1+y2)/2])
+
+        keypoints.append(keypoint)
         bboxes.append(bbox)
         proposal_scores.append(proposal_score)
     ix = 0
-    for i in range(len(proposal_score)):
+    for i in range(len(proposal_score)):  # best confidence person
         if proposal_score[i] > proposal_score[ix]:
             ix = i
     return name, keypoints[ix], bboxes[ix]
 
 
-def get_score(img1, img2):
-    pass
+def get_joint_vector(keypoints):
+    """관절을 잇는 뼈대 벡터 반환
+
+    Args:
+        keypoints (List[Point]): 관절들의 리스트
+
+    Returns:
+        Joint vector: 인접한 관절을 이은 뼈대 벡터의 리스트
+    """
+    # adjacent keypoint
+    directions = [[0, 17], [17, 6], [17, 5], [6, 8], [8, 10], [5, 7], [
+        7, 9], [17, 12], [12, 14], [14, 16], [17, 11], [11, 13], [13, 15]]
+    vectors = []
+    for p1, p2 in directions:
+        x1, y1 = keypoints[p1]
+        x2, y2 = keypoints[p2]
+        vectors.append([x2-x1, y2-y1])
+    return vectors
+
+
+def processing(img: str):
+    """이미지로부터 뼈대 벡터 구하는 함수
+
+    Args:
+        img (str): 이미지 경로
+
+    Returns:
+        Joint vector: 뼈대 벡터 리스트
+    """
+    name, keypoint, bbox = get_feature(img)
+    keypoint = normalization(keypoint, bbox)
+    joint = get_joint_vector(keypoint)
+    return joint
+    # values = get_CCW_value(joint)
+    # return values, joint
+
+
+def get_score(img1: str, img2: str):
+    """자세 점수 구하는 함수
+
+    Args:
+        img1 (str): 원본 이미지 경로
+        img2 (str): 사용자 이미지 경로
+
+    Returns:
+        score: 유사도 점수
+    """
+    joint1 = processing(img1)
+    joint2 = processing(img2)
+    length = len(joint1)
+    score = 0
+    for v1, v2 in zip(joint1, joint2):
+        score += (cosine_similarity(v1, v2) + 1)*50  # 0 <= x <= 100
+        # print(round((cosine_similarity(v1, v2) + 1)*50, 2))
+    score /= length
+    return score
 
 
 if __name__ == "__main__":
-    print(get_feature("examples/demo/1.jpg"))
+    # value = processing("examples/demo/4.jpg")
+    score = get_score("examples/demo/12.jpg", "examples/demo/13.jpg")
+    print(score)
