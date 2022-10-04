@@ -1,29 +1,7 @@
-from inference import inference
-
-
-def CCW(a, b):
-    """CCW algorithm
-
-    Args:
-        a (vector2D): vector
-        b (vector2D): vector
-
-    Returns:
-        number: CCW scalar value
-    """
-    x1, y1 = a
-    x2, y2 = b
-    return x1*y2-x2*y1
-
-
-def get_CCW_value(vectors):
-    # adjacent vector
-    connections = [[0, 1], [0, 2], [0, 7], [0, 10], [1, 7], [1, 10], [2, 7], [
-        2, 10], [7, 10], [1, 3], [3, 4], [2, 5], [5, 6], [7, 8], [8, 9], [10, 11], [11, 12]]
-    value = []
-    for p1, p2 in connections:
-        value.append(CCW(vectors[p1], vectors[p2]))
-    return value
+if __name__ == "__main__":
+    from inference import inference
+else:
+    from .inference import inference
 
 
 def cosine_similarity(a, b):
@@ -131,11 +109,9 @@ def processing(img: str):
         Joint vector: 뼈대 벡터 리스트
     """
     name, keypoint, bbox = get_feature(img)
-    keypoint = normalization(keypoint, bbox)
-    joint = get_joint_vector(keypoint)
+    normalized_keypoint = normalization(keypoint, bbox)
+    joint = get_joint_vector(normalized_keypoint)
     return joint
-    # values = get_CCW_value(joint)
-    # return values, joint
 
 
 def get_score(img1: str, img2: str):
