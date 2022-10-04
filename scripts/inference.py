@@ -74,11 +74,10 @@ from alphapose.utils.vis import getTime
 
 
 class Argument:
-    def __init__(self, img):
+    def __init__(self):
         self.cfg = "configs/coco/resnet/256x192_res152_lr1e-3_1x-duc.yaml"
         self.checkpoint = "pretrained_models/fast_421_res152_256x192.pth"
         self.detector = "yolo"
-        self.inputimg = img
         self.save_img = True
         self.vis = False
         self.showbox = False
@@ -434,16 +433,16 @@ class SingleImageAlphaPose():
         write_json(final_result, outputpath, form=form, for_eval=for_eval)
         print("Results have been written to json.")
 
+args = Argument()
+cfg = update_config(args.cfg)
+outputpath = "examples/res/"
+if not os.path.exists(outputpath + '/vis'):
+    os.mkdir(outputpath + '/vis')
+
+demo = SingleImageAlphaPose(args, cfg)
 
 def inference(img):
-    args = Argument(img)
-    cfg = update_config(args.cfg)
-    outputpath = "examples/res/"
-    if not os.path.exists(outputpath + '/vis'):
-        os.mkdir(outputpath + '/vis')
-
-    demo = SingleImageAlphaPose(args, cfg)
-    im_name = args.inputimg    # the path to the target image
+    im_name = img    # the path to the target image
     image = cv2.cvtColor(cv2.imread(im_name), cv2.COLOR_BGR2RGB)
     pose = demo.process(im_name, image)
     img = demo.getImg()     # or you can just use: img = cv2.imread(image)
