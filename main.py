@@ -13,7 +13,10 @@ def root():
     return {"message": "Hello World"}
 
 
-@app.get("/api/v1/score/{src1}/{src2}")
+@app.get("/api/v1/ai/score/{src1}/{src2}")
 def func(src1: str, src2: str):
-    score = get_score(src1, src2)
+    original = f"/data/images/orig/{src1}.jpg"
+    target = f"/data/images/upload/orig/{src2}.jpg"
+    print(">>>>",original, target)
+    score = get_score(original, target)
     return {"score": score}
