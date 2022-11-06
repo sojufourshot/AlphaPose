@@ -2,6 +2,8 @@ if __name__ == "__main__":
     from inference import inference
 else:
     from .inference import inference
+import cv2
+import os
 
 
 def cosine_similarity(a, b):
@@ -111,7 +113,7 @@ def processing(img: str):
     name, keypoint, bbox = get_feature(img)
     normalized_keypoint = normalization(keypoint, bbox)
     joint = get_joint_vector(normalized_keypoint)
-    return joint
+    return joint, keypoint
 
 
 def get_score(img1: str, img2: str):
@@ -124,15 +126,36 @@ def get_score(img1: str, img2: str):
     Returns:
         score: 유사도 점수
     """
-    joint1 = processing(img1)
-    joint2 = processing(img2)
+    joint1, _ = processing(img1)
+    joint2, joint = processing(img2)
     length = len(joint1)
+    filename = save(img2, joint)
     score = 0
     for v1, v2 in zip(joint1, joint2):
         score += (cosine_similarity(v1, v2) + 1)*50  # 0 <= x <= 100
         # print(round((cosine_similarity(v1, v2) + 1)*50, 2))
     score /= length
-    return score
+    return score, filename
+
+def save(img: str, keypoint):
+    image = cv2.imread(img, cv2.IMREAD_COLOR)
+    # print(image)
+    directions = [[0, 17], [17, 6], [17, 5], [6, 8], [8, 10], [5, 7], [
+    7, 9], [17, 12], [12, 14], [14, 16], [17, 11], [11, 13], [13, 15]]
+    for d1, d2 in directions:
+        p1 = keypoint[d1]
+        p2 = keypoint[d2]
+        x1, y1 = map(int, p1)
+        x2, y2 = map(int, p2)
+        cv2.line(image, (x1,y1), (x2,y2),(0,0,255), 5)
+    prefix = "/data/images/result"
+    files = os.listdir(prefix)
+    filename = len(files)
+    cv2.imwrite(f"{prefix}/{filename}.jpg", image)
+    print(f"===========================> {filename}.jpg saved")
+    return filename
+
+
 
 
 if __name__ == "__main__":
